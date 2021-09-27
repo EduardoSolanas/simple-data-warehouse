@@ -14,7 +14,9 @@ There are the following aggregations:
 
 All endpoints can be filtered by :
 * Daily: Filters by a given date
-* DateFrom and DateTo: Filters by a range of dates
+* DateFrom: Filters by date greater or equals than the given dateFrom  
+* DateTo: Filters by date lower or equals than the given dateTo
+* DateFrom and DateTo: Filters by the given date range
 * Datasource: Filters by datasource value
 * Campaign: Filters by campaign value
 

@@ -70,6 +70,39 @@ class MarketingControllerTest extends Specification {
             metric << ["impressions", "clicks"]
     }
 
+    @Unroll
+    def "total clicks returns a 400 response if date has the wrong date format"() {
+        expect:
+            this.mockMvc.perform(post("/clicks/total/sum")
+                .content("""{"date":"$dateFormat"}""")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isBadRequest())
+        where:
+            dateFormat << ["20/12/2020", "20/12/20"]
+    }
+
+    @Unroll
+    def "total clicks returns a 400 response if date has the wrong dateFrom format"() {
+        expect:
+            this.mockMvc.perform(post("/clicks/total/sum")
+                .content("""{"dateFrom":"$dateFormat"}""")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isBadRequest())
+        where:
+            dateFormat << ["20/12/2020", "20/12/20"]
+    }
+
+    @Unroll
+    def "total clicks returns a 400 response if date has the wrong dateTo format"() {
+        expect:
+            this.mockMvc.perform(post("/clicks/total/sum")
+                .content("""{"dateTo":"$dateFormat"}""")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isBadRequest())
+        where:
+            dateFormat << ["20/12/2020", "20/12/20"]
+    }
+
     def "total clicks for a given date range"() {
         given:
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10)
@@ -86,6 +119,40 @@ class MarketingControllerTest extends Specification {
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
                     .andExpect(content().string("35"))
+    }
+
+    def "total clicks for a given dateFrom"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10)
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-12"),3)
+        and:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-14"),7)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-13"), 10)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-12"), 10)
+        expect:
+            this.mockMvc.perform(post("/clicks/total/sum")
+                .content('{"dateFrom":"12/12/2020"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().string("27"))
+    }
+
+    def "total clicks for a given dateTo"() {
+        given:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-12"),3)
+        and:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-13"), 10)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-14"),7)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-13"), 10)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-12"), 10)
+        expect:
+            this.mockMvc.perform(post("/clicks/total/sum")
+                .content('{"dateTo":"12/13/2019"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().string("8"))
     }
 
     def "total clicks for a given date"() {

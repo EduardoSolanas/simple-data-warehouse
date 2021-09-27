@@ -21,7 +21,6 @@ import static java.util.Arrays.stream;
 @Repository
 public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom {
 
-
     @PersistenceContext
     private EntityManager em;
 
@@ -65,7 +64,7 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
         return em.createQuery(query).getSingleResult();
     }
 
-    private List<String> extractGroupBy(String groupBy) {
+    private static List<String> extractGroupBy(String groupBy) {
         List<String> results = new ArrayList<>();
 
         if (groupBy.contains(COMMA)) {
@@ -76,7 +75,7 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
         return results;
     }
 
-    private Predicate[] applyFilters(MarketingQueryRequest request, CriteriaBuilder builder, Root<Marketing> root) {
+    private static Predicate[] applyFilters(MarketingQueryRequest request, CriteriaBuilder builder, Root<Marketing> root) {
         List<Predicate> filters = new ArrayList<>();
 
         if (request.getDatasource() != null) filters.add(builder.equal(root.get("datasource"), request.getDatasource()));
@@ -84,14 +83,18 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
 
         if (request.getDate() != null) {
             filters.add(builder.between(root.get("daily"), request.getDate(), request.getDate()));
-        } else if (request.getDateTo() != null && request.getDateTo() != null) {
+        } else if (request.getDateFrom() != null && request.getDateTo() != null) {
             filters.add(builder.between(root.get("daily"), request.getDateFrom(), request.getDateTo()));
+        } else if (request.getDateFrom() != null) {
+            filters.add(builder.greaterThanOrEqualTo(root.get("daily"), request.getDateFrom()));
+        } else if (request.getDateTo() != null) {
+            filters.add(builder.lessThanOrEqualTo(root.get("daily"), request.getDateTo()));
         }
 
         return filters.toArray(Predicate[]::new);
     }
     
-    private Selection<? extends Number> calculateAggregator(Aggregations aggregations, CriteriaBuilder builder, Root<Marketing> root, String field) {
+    private static Selection<? extends Number> calculateAggregator(Aggregations aggregations, CriteriaBuilder builder, Root<Marketing> root, String field) {
        if (Aggregations.MAX.equals(aggregations)) return builder.max(root.get(field));
        if (Aggregations.MIN.equals(aggregations)) return builder.min(root.get(field));
        if (Aggregations.AVG.equals(aggregations)) return builder.avg(root.get(field));
@@ -99,15 +102,15 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
        return builder.sum(root.get(field));
     }
 
-    private Expression[] extractGroupsBy(List<String> groupByValues, Root<Marketing> root) {
+    private static Expression[] extractGroupsBy(List<String> groupByValues, Root<Marketing> root) {
         return groupByValues.stream().map(root::get).toArray(Expression[]::new);
     }
 
-    private List<Order> extractGroupsForOrdering(List<String> groupByValues, Root<Marketing> root, CriteriaBuilder builder) {
+    private static List<Order> extractGroupsForOrdering(List<String> groupByValues, Root<Marketing> root, CriteriaBuilder builder) {
         return groupByValues.stream().map(groupByValue -> builder.asc(root.get(groupByValue))).collect(Collectors.toList());
     }
 
-    private Selection[] extractSelectParamsFromGroupsBy(Aggregations aggregations, List<String> groupByValues, Metrics metrics, Root<Marketing> root, CriteriaBuilder builder) {
+    private static Selection[] extractSelectParamsFromGroupsBy(Aggregations aggregations, List<String> groupByValues, Metrics metrics, Root<Marketing> root, CriteriaBuilder builder) {
 
         List<Selection> results = new ArrayList<>();
         results.add(calculateAggregator(aggregations, builder, root, metrics.name().toLowerCase()));
