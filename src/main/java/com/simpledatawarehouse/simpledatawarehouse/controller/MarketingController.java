@@ -2,34 +2,35 @@ package com.simpledatawarehouse.simpledatawarehouse.controller;
 
 import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.service.MarketingService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
+@AllArgsConstructor
 public class MarketingController {
 
-    @Autowired
-    MarketingService marketingService;
+    private MarketingService marketingService;
 
-
-    @PostMapping("/marketing/{metrics}/total/{aggregations}")
+    @PostMapping("/{metrics}/total/{aggregations}")
     public Number calculateAggregationNumbers(@PathVariable Metrics metrics,
                                        @PathVariable Aggregations aggregations,
                                        @RequestBody MarketingQueryRequest request) {
-        return marketingService.calculateAggregationNumbers(metrics, aggregations, request);
+
+        if (request.getGroupBy() != null ) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        return marketingService.calculateTotalAggregationNumbers(metrics, aggregations, request);
     }
 
-    @PostMapping("/marketing/{metrics}/{aggregations}")
+    @PostMapping(value = {"/{metrics}", "/{metrics}/{aggregations}"})
     public List<ResultItem> calculateMetrics(@PathVariable Metrics metrics,
-                                             @PathVariable Aggregations aggregations,
+                                             @PathVariable(required = false) Aggregations aggregations,
                                              @RequestBody MarketingQueryRequest request) {
-        return marketingService.getMetricQueryResults(metrics, aggregations, request);
-    }
 
-    @PostMapping("/marketing/ctr")
-    public List<ResultItem> calculateCTR(@RequestBody MarketingQueryRequest request) {
-        return marketingService.calculateCTR(request);
+        if (Metrics.CTR.equals(metrics) && request.getGroupBy() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        return marketingService.getMetricQueryResults(metrics, aggregations, request);
     }
 }

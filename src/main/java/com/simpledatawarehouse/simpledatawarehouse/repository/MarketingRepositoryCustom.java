@@ -9,9 +9,7 @@ import java.util.List;
 
 public interface MarketingRepositoryCustom {
 
-    List<ResultItem> calculateCTR(MarketingQueryRequest request);
-
-    Number queryApplyingAggregator(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request);
+    Number calculateTotalAggregationNumbers(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request);
 
     List<ResultItem> getMetricQueryResults(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request);
 }

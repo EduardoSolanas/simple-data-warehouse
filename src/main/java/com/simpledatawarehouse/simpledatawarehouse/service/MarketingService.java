@@ -16,12 +16,8 @@ public class MarketingService {
 
     private MarketingRepository marketingRepository;
 
-    public Number calculateAggregationNumbers(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
-        return marketingRepository.queryApplyingAggregator(metrics, aggregations, request);
-    }
-
-    public List<ResultItem> calculateCTR(MarketingQueryRequest request) {
-        return marketingRepository.calculateCTR(request);
+    public Number calculateTotalAggregationNumbers(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
+        return marketingRepository.calculateTotalAggregationNumbers(metrics, aggregations, request);
     }
 
     public List<ResultItem> getMetricQueryResults(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {

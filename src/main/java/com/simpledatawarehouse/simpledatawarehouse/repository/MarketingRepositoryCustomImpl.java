@@ -23,65 +23,49 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
     private EntityManager em;
 
     @Override
-    public List<ResultItem> calculateCTR(MarketingQueryRequest request) {
-        CriteriaBuilder builder = em.getCriteriaBuilder();
-        CriteriaQuery<ResultItem> query = builder.createQuery(ResultItem.class);
-        Root<Marketing> root = query.from(Marketing.class);
-
-        Expression<Long> sum1 = builder.sum(root.get("clicks"));
-        Expression<Long> sum2 = builder.sum(root.get("impressions"));
-
-        List<Predicate> filters = new ArrayList<>();
-
-        query.select(builder.construct(ResultItem.class, root.get("datasource"), root.get("campaign"),  builder.quot(sum1, sum2).as(Double.class)));
-
-        applyFilters(request, builder, root, filters);
-
-        query.where(filters.toArray(new Predicate[filters.size()]));
-
-        query.groupBy(root.get("datasource"), root.get("campaign"));
-
-        return em.createQuery(query).getResultList();
-    }
-
-    @Override
-    public Number queryApplyingAggregator(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
-        CriteriaBuilder builder = em.getCriteriaBuilder();
-        CriteriaQuery<Number> query = builder.createQuery(Number.class);
-        Root<Marketing> root = query.from(Marketing.class);
-
-        List<Predicate> filters = new ArrayList<>();
-
-        query.select(calculateAggregator(aggregations, builder, root, metrics.name().toLowerCase()));
-
-        applyFilters(request, builder, root, filters);
-
-        query.where(filters.toArray(new Predicate[filters.size()]));
-        return em.createQuery(query).getSingleResult();
-    }
-
-    @Override
     public List<ResultItem> getMetricQueryResults(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
         CriteriaQuery<ResultItem> query = builder.createQuery(ResultItem.class);
         Root<Marketing> root = query.from(Marketing.class);
 
-        List<Predicate> filters = new ArrayList<>();
+        List<Predicate> filters = applyFilters(request, builder, root);
 
-        query.select(builder.construct(ResultItem.class, extractSelectParamsFromGroupsBy(aggregations, request.getGroupBy(), metrics, root, builder)));
+        query.where(filters.toArray(new Predicate[filters.size()]));
 
-        applyFilters(request, builder, root, filters);
+        if (Metrics.CTR.equals(metrics)) {
+            Expression<Long> sum1 = builder.sum(root.get("clicks"));
+            Expression<Long> sum2 = builder.sum(root.get("impressions"));
+            Expression<Double> ctr =  builder.quot(sum1, sum2).as(Double.class);
+
+            query.select(builder.construct(ResultItem.class, root.get("datasource"), root.get("campaign"), ctr));
+        } else {
+            query.select(builder.construct(ResultItem.class, extractSelectParamsFromGroupsBy(aggregations, request.getGroupBy(), metrics, root, builder)));
+        }
 
         if (request.getGroupBy() != null) {
             extractGroupsBy(request.getGroupBy(), query, root);
         }
 
-        query.where(filters.toArray(new Predicate[filters.size()]));
-
         return em.createQuery(query).getResultList();
     }
 
-    private void applyFilters(MarketingQueryRequest request, CriteriaBuilder builder, Root<Marketing> root, List<Predicate> filters) {
+    @Override
+    public Number calculateTotalAggregationNumbers(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
+        CriteriaBuilder builder = em.getCriteriaBuilder();
+        CriteriaQuery<Number> query = builder.createQuery(Number.class);
+        Root<Marketing> root = query.from(Marketing.class);
+
+        List<Predicate> filters = applyFilters(request, builder, root);
+
+        query.select(calculateAggregator(aggregations, builder, root, metrics.name().toLowerCase()));
+
+        query.where(filters.toArray(new Predicate[filters.size()]));
+        return em.createQuery(query).getSingleResult();
+    }
+
+    private List<Predicate> applyFilters(MarketingQueryRequest request, CriteriaBuilder builder, Root<Marketing> root) {
+        List<Predicate> filters = new ArrayList<>();
+
         if (request.getDatasource() != null) filters.add(builder.equal(root.get("datasource"), request.getDatasource()));
         if (request.getCampaign() != null) filters.add(builder.equal(root.get("campaign"), request.getCampaign()));
 
@@ -90,12 +74,14 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
         } else if (request.getDateTo() != null && request.getDateTo() != null) {
             filters.add(builder.between(root.get("daily"), request.getDateFrom(), request.getDateTo()));
         }
+
+        return filters;
     }
     
     private Expression calculateAggregator(Aggregations aggregations, CriteriaBuilder builder, Root<Marketing> root, String field) {
-       if (aggregations.equals(Aggregations.MAX)) return builder.max(root.get(field));
-       if (aggregations.equals(Aggregations.MIN)) return builder.min(root.get(field));
-       if (aggregations.equals(Aggregations.AVG)) return builder.avg(root.get(field));
+       if (Aggregations.MAX.equals(aggregations)) return builder.max(root.get(field));
+       if (Aggregations.MIN.equals(aggregations)) return builder.min(root.get(field));
+       if (Aggregations.AVG.equals(aggregations)) return builder.avg(root.get(field));
 
        return builder.sum(root.get(field));
     }
