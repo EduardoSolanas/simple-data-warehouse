@@ -3,8 +3,7 @@ package com.simpledatawarehouse.simpledatawarehouse.service;
 import com.simpledatawarehouse.simpledatawarehouse.controller.Aggregations;
 import com.simpledatawarehouse.simpledatawarehouse.controller.MarketingQueryRequest;
 import com.simpledatawarehouse.simpledatawarehouse.controller.Metrics;
-import com.simpledatawarehouse.simpledatawarehouse.model.CTR;
-import com.simpledatawarehouse.simpledatawarehouse.model.ImpressionsOverTime;
+import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.repository.MarketingRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,11 +20,11 @@ public class MarketingService {
         return marketingRepository.queryApplyingAggregator(metrics, aggregations, request);
     }
 
-    public List<CTR> calculateCTR(MarketingQueryRequest request) {
+    public List<ResultItem> calculateCTR(MarketingQueryRequest request) {
         return marketingRepository.calculateCTR(request);
     }
 
-    public List<ImpressionsOverTime> getMetricQueryResults(Metrics metrics, MarketingQueryRequest request) {
-        return marketingRepository.getMetricQueryResults(metrics, request);
+    public List<ResultItem> getMetricQueryResults(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
+        return marketingRepository.getMetricQueryResults(metrics, aggregations, request);
     }
 }

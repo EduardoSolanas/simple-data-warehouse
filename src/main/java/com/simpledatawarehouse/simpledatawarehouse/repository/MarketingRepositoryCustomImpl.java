@@ -3,8 +3,7 @@ package com.simpledatawarehouse.simpledatawarehouse.repository;
 import com.simpledatawarehouse.simpledatawarehouse.controller.Aggregations;
 import com.simpledatawarehouse.simpledatawarehouse.controller.MarketingQueryRequest;
 import com.simpledatawarehouse.simpledatawarehouse.controller.Metrics;
-import com.simpledatawarehouse.simpledatawarehouse.model.CTR;
-import com.simpledatawarehouse.simpledatawarehouse.model.ImpressionsOverTime;
+import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.model.Marketing;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +12,9 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static java.util.Arrays.stream;
 
 @Repository
 public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom {
@@ -21,20 +23,21 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
     private EntityManager em;
 
     @Override
-    public List<CTR> calculateCTR(MarketingQueryRequest request) {
+    public List<ResultItem> calculateCTR(MarketingQueryRequest request) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
-        CriteriaQuery<CTR> query = builder.createQuery(CTR.class);
+        CriteriaQuery<ResultItem> query = builder.createQuery(ResultItem.class);
         Root<Marketing> root = query.from(Marketing.class);
 
         Expression<Long> sum1 = builder.sum(root.get("clicks"));
         Expression<Long> sum2 = builder.sum(root.get("impressions"));
 
-        query.select(builder.construct(CTR.class, root.get("datasource"), root.get("campaign"),  builder.quot(sum1, sum2).as(Double.class)));
-        if (request.getDate() != null) {
-            query.where(builder.between(root.get("daily"), request.getDate(), request.getDate()));
-        } else if (request.getDateTo() != null && request.getDateTo() != null) {
-            query.where(builder.between(root.get("daily"), request.getDateFrom(), request.getDateTo()));
-        }
+        List<Predicate> filters = new ArrayList<>();
+
+        query.select(builder.construct(ResultItem.class, root.get("datasource"), root.get("campaign"),  builder.quot(sum1, sum2).as(Double.class)));
+
+        applyFilters(request, builder, root, filters);
+
+        query.where(filters.toArray(new Predicate[filters.size()]));
 
         query.groupBy(root.get("datasource"), root.get("campaign"));
 
@@ -58,19 +61,19 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
     }
 
     @Override
-    public List<ImpressionsOverTime> getMetricQueryResults(Metrics metrics, MarketingQueryRequest request) {
+    public List<ResultItem> getMetricQueryResults(Metrics metrics, Aggregations aggregations, MarketingQueryRequest request) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
-        CriteriaQuery<ImpressionsOverTime> query = builder.createQuery(ImpressionsOverTime.class);
+        CriteriaQuery<ResultItem> query = builder.createQuery(ResultItem.class);
         Root<Marketing> root = query.from(Marketing.class);
 
         List<Predicate> filters = new ArrayList<>();
 
-        query.select(builder.construct(ImpressionsOverTime.class,  builder.sum(root.get(metrics.name().toLowerCase())), root.get("daily")));
+        query.select(builder.construct(ResultItem.class, extractSelectParamsFromGroupsBy(aggregations, request.getGroupBy(), metrics, root, builder)));
 
         applyFilters(request, builder, root, filters);
 
         if (request.getGroupBy() != null) {
-            query.groupBy(root.get(request.getGroupBy().toString().toLowerCase()));
+            extractGroupsBy(request.getGroupBy(), query, root);
         }
 
         query.where(filters.toArray(new Predicate[filters.size()]));
@@ -94,7 +97,31 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
        if (aggregations.equals(Aggregations.MIN)) return builder.min(root.get(field));
        if (aggregations.equals(Aggregations.AVG)) return builder.avg(root.get(field));
 
-
        return builder.sum(root.get(field));
+    }
+
+    private void extractGroupsBy(String groupBy, CriteriaQuery<ResultItem> query, Root<Marketing> root) {
+
+        if (groupBy != null) {
+            if (groupBy.contains(",")) {
+                query.groupBy(stream(groupBy.split(",")).map(group -> root.get(group.toLowerCase()))
+                        .collect(Collectors.toList()));
+            } else {
+                query.groupBy(root.get(groupBy.toLowerCase()));
+            }
+        }
+    }
+
+    private Selection[] extractSelectParamsFromGroupsBy(Aggregations aggregations, String groupBy, Metrics metrics, Root<Marketing> root, CriteriaBuilder builder) {
+        List<Selection> results = new ArrayList<>();
+        results.add(calculateAggregator(aggregations, builder, root, metrics.name().toLowerCase()));
+        if (groupBy != null) {
+            if (groupBy.contains(",")) {
+                stream(groupBy.split(",")).sorted().forEach(group -> results.add(root.get(group.toLowerCase())));
+            } else {
+                results.add(root.get(groupBy.toLowerCase()));
+            }
+        }
+        return results.toArray(new Selection[results.size()]);
     }
 }

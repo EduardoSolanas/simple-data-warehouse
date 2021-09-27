@@ -13,7 +13,7 @@ public class MarketingQueryRequest {
 
     private String campaign;
 
-    private GroupByValues groupBy;
+    private String groupBy;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate dateFrom;

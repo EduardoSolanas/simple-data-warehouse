@@ -11,6 +11,5 @@ public class WebConfig implements WebMvcConfigurer {
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(new StringToAggregationConverter());
         registry.addConverter(new StringToMetricsConverter());
-        registry.addConverter(new StringToGroupByValuesConverter());
     }
 }
