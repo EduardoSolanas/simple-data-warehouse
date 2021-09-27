@@ -1,9 +1,10 @@
 package com.simpledatawarehouse.simpledatawarehouse.controller;
 
+import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByIsNeededException;
+import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByNotSupportedException;
 import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.service.MarketingService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,7 +22,7 @@ public class MarketingController {
                                        @PathVariable Aggregations aggregations,
                                        @RequestBody MarketingQueryRequest request) {
 
-        if (request.getGroupBy() != null ) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        if (request.getGroupBy() != null ) throw new GroupingByNotSupportedException();
         return marketingService.calculateTotalAggregationNumbers(metrics, aggregations, request);
     }
 
@@ -30,7 +31,7 @@ public class MarketingController {
                                              @PathVariable(required = false) Aggregations aggregations,
                                              @RequestBody MarketingQueryRequest request) {
 
-        if (Metrics.CTR.equals(metrics) && request.getGroupBy() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        if (Metrics.CTR.equals(metrics) && request.getGroupBy() == null) throw new GroupingByIsNeededException();
         return marketingService.getMetricQueryResults(metrics, aggregations, request);
     }
 }

@@ -64,6 +64,7 @@ class MarketingControllerTest extends Specification {
                 .content('{"groupBy":"date"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
+                .andExpect(content().string("groupBy is not supported"))
         where:
             metric << ["impressions", "clicks"]
     }
@@ -168,6 +169,7 @@ class MarketingControllerTest extends Specification {
                 .content('{}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
+                .andExpect(content().string("groupBy is needed"))
     }
 
     def "total Click-Through Rate for a given date"() {

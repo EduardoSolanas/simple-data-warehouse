@@ -52,3 +52,5 @@ http://simpledatawarehouse-env.eba-v3pxyp9n.eu-west-1.elasticbeanstalk.com/marke
 
 ## Possible improvements
 * Add a way to combine CTR with some aggregations, like for example: return the AVG(CTR) for a month
+* Add Pagination
+* Add sorting
