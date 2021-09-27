@@ -2,10 +2,8 @@ package com.simpledatawarehouse.simpledatawarehouse.controller;
 
 import com.simpledatawarehouse.simpledatawarehouse.model.CTR;
 import com.simpledatawarehouse.simpledatawarehouse.model.ImpressionsOverTime;
-import com.simpledatawarehouse.simpledatawarehouse.model.Marketing;
 import com.simpledatawarehouse.simpledatawarehouse.service.MarketingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,14 +15,16 @@ public class MarketingController {
     MarketingService marketingService;
 
 
-    @PostMapping("/marketing/clicks/total")
-    public Long calculateTotalClicks(@RequestBody MarketingQueryRequest request) {
-        return marketingService.queryClicks(request);
+    @PostMapping("/marketing/{metrics}/{aggregations}")
+    public Number calculateAggregationNumbers(@PathVariable Metrics metrics,
+                                       @PathVariable Aggregations aggregations,
+                                       @RequestBody MarketingQueryRequest request) {
+        return marketingService.calculateAggregationNumbers(metrics, aggregations, request);
     }
 
-    @PostMapping("/marketing/impressions/total")
-    public List<ImpressionsOverTime> calculateTotalImpressions(@RequestBody MarketingQueryRequest request) {
-        return marketingService.calculateTotalImpressions(request);
+    @PostMapping("/marketing/{metrics}")
+    public List<ImpressionsOverTime> calculateMetrics(@PathVariable Metrics metrics, @RequestBody MarketingQueryRequest request) {
+        return marketingService.getMetricQueryResults(metrics, request);
     }
 
     @PostMapping("/marketing/ctr")

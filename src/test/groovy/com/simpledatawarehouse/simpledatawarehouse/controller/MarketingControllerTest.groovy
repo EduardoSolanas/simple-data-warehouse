@@ -30,7 +30,7 @@ class MarketingControllerTest extends Specification {
         marketingRepository.deleteAll()
     }
 
-    def "total clicks without anything given"() {
+    def "clicks without anything given with different aggregators"(Aggregations aggregation, String result) {
         given:
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10)
             saveMarketing("ds1","cmp1", LocalDate.parse("2020-12-13"), 10)
@@ -41,11 +41,18 @@ class MarketingControllerTest extends Specification {
         and:
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
         expect:
-            this.mockMvc.perform(post("/marketing/clicks/total")
+            this.mockMvc.perform(post("/marketing/clicks/${aggregation}")
                     .content('{}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
-                    .andExpect(content().string("45"))
+                    .andExpect(content().string(result))
+
+        where:
+            aggregation      | result
+            Aggregations.SUM | "45"
+            Aggregations.MIN | "3"
+            Aggregations.MAX | "10"
+            Aggregations.AVG | "7.5"
     }
 
     def "total clicks for a given date range"() {
@@ -59,8 +66,8 @@ class MarketingControllerTest extends Specification {
         and:
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
         expect:
-            this.mockMvc.perform(post("/marketing/clicks/total")
-                    .content('{"dateFrom":"12/13/19","dateTo": "12/13/20"}')
+            this.mockMvc.perform(post("/marketing/clicks/sum")
+                    .content('{"dateFrom":"12/13/2019","dateTo": "12/13/2020"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
                     .andExpect(content().string("35"))
@@ -77,8 +84,8 @@ class MarketingControllerTest extends Specification {
         and:
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
         expect:
-        this.mockMvc.perform(post("/marketing/clicks/total")
-                .content('{"date":"12/13/19"}')
+        this.mockMvc.perform(post("/marketing/clicks/SUM")
+                .content('{"date":"12/13/2019"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().string("15"))
@@ -95,7 +102,7 @@ class MarketingControllerTest extends Specification {
         and:
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-13"), 5)
         expect:
-            this.mockMvc.perform(post("/marketing/clicks/total")
+            this.mockMvc.perform(post("/marketing/clicks/SUM")
                     .content('{"datasource":"ds1"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
@@ -113,7 +120,7 @@ class MarketingControllerTest extends Specification {
         and:
             saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 5)
         expect:
-            this.mockMvc.perform(post("/marketing/clicks/total")
+            this.mockMvc.perform(post("/marketing/clicks/SUM")
                     .content('{"campaign":"cmp2"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
@@ -133,7 +140,7 @@ class MarketingControllerTest extends Specification {
 
         expect:
             this.mockMvc.perform(post("/marketing/ctr")
-                    .content('{"dateFrom":"12/13/19","dateTo": "12/14/19"}')
+                    .content('{"dateFrom":"12/13/2019","dateTo": "12/14/2019"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
                     .andExpect(content().json("""[
@@ -154,7 +161,7 @@ class MarketingControllerTest extends Specification {
 
         expect:
             this.mockMvc.perform(post("/marketing/ctr")
-                .content('{"date":"12/13/19"}')
+                .content('{"date":"12/13/2019"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().json("""[
@@ -162,7 +169,28 @@ class MarketingControllerTest extends Specification {
                     {"datasource":"ds1","campaign":"cmp2","ctr":0.0033333333333333335}]"""))
     }
 
-    def "total impressions over time daily without anything given"() {
+    def "impressions without anything given with different aggregators"(Aggregations aggregation, String result) {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 8000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-14"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions/${aggregation}")
+                    .content('{}')
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andDo(print()).andExpect(status().isOk())
+                    .andExpect(content().json(result))
+        where:
+            aggregation      | result
+            Aggregations.SUM | "16000"
+            Aggregations.MIN | "4000"
+            Aggregations.MAX | "8000"
+            Aggregations.AVG | "5333.333333333333"
+    }
+
+    def "total impressions given a date"() {
         given:
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
             saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
@@ -170,69 +198,135 @@ class MarketingControllerTest extends Specification {
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-14"), 1, 4000)
 
         expect:
-            this.mockMvc.perform(post("/marketing/impressions/total")
-                .content('{}')
-                .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print()).andExpect(status().isOk())
-                .andExpect(content().json("""[
-                {"impressions":8000,"date":"2019-12-13"},
-                {"impressions":4000,"date":"2019-12-14"}]"""))
-    }
-
-    def "total impressions over time daily with a date range"() {
-        given:
-            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
-            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
-            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
-        and:
-            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
-            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
-
-        expect:
-        this.mockMvc.perform(post("/marketing/impressions/total")
-                .content('{"dateFrom":"12/13/19","dateTo": "12/14/19"}')
-                .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print()).andExpect(status().isOk())
-                .andExpect(content().json("""[
-                {"impressions":8000,"date":"2019-12-13"},
-                {"impressions":4000,"date":"2019-12-14"}]"""))
-    }
-
-    def "total impressions over time daily with an specific date"() {
-        given:
-            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
-            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
-            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
-        and:
-            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
-            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
-
-        expect:
-            this.mockMvc.perform(post("/marketing/impressions/total")
-                    .content('{"date":"12/13/19"}')
+            this.mockMvc.perform(post("/marketing/impressions/sum")
+                    .content('{"date":"12/13/2019"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
-                    .andExpect(content().json("""[{"impressions":8000,"date":"2019-12-13"}]"""))
+                    .andExpect(content().json("8000"))
     }
 
-    def "total impressions over time daily for a given datasource"() {
+    def "total impressions given a date range"() {
         given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
             saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
             saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
         and:
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
-            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
 
         expect:
-            this.mockMvc.perform(post("/marketing/impressions/total")
+            this.mockMvc.perform(post("/marketing/impressions/sum")
+                    .content('{"dateFrom":"12/13/2019","dateTo":"12/14/2019"}')
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andDo(print()).andExpect(status().isOk())
+                    .andExpect(content().json("12000"))
+    }
+
+    def "total impressions given a datasource"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions/sum")
                     .content('{"datasource":"ds1"}')
                     .contentType(MediaType.APPLICATION_JSON))
                     .andDo(print()).andExpect(status().isOk())
-                    .andExpect(content().json("""[{"impressions":4000,"date":"2019-12-13"}]"""))
+                    .andExpect(content().json("8000"))
     }
 
-    def "total impressions over time daily for a given campaign"() {
+    def "total impressions given a campaign"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 5000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 5000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions/sum")
+                    .content('{"campaign":"cmp2"}')
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andDo(print()).andExpect(status().isOk())
+                    .andExpect(content().json("10000"))
+    }
+
+    def "impressions over time daily without anything given"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-14"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions")
+                .content('{"groupBy": "daily"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                {"total":8000,"date":"2019-12-13"},
+                {"total":4000,"date":"2019-12-14"}]"""))
+    }
+
+    def "impressions over time daily with a date range"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+        this.mockMvc.perform(post("/marketing/impressions")
+                .content('{"dateFrom":"12/13/2019","dateTo": "12/14/2019", "groupBy": "daily"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                {"total":8000,"date":"2019-12-13"},
+                {"total":4000,"date":"2019-12-14"}]"""))
+    }
+
+    def "impressions over time daily with an specific date"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions")
+                    .content('{"date":"12/13/2019"}')
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andDo(print()).andExpect(status().isOk())
+                    .andExpect(content().json("""[{"total":8000,"date":"2019-12-13"}]"""))
+    }
+
+    def "impressions over time daily for a given datasource"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 1, 4000)
+        and:
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-15"), 1, 4000)
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/marketing/impressions")
+                    .content('{"datasource":"ds1"}')
+                    .contentType(MediaType.APPLICATION_JSON))
+                    .andDo(print()).andExpect(status().isOk())
+                    .andExpect(content().json("""[{"total":4000,"date":"2019-12-13"}]"""))
+    }
+
+    def "impressions over time daily for a given campaign"() {
         given:
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
         and:
@@ -243,13 +337,13 @@ class MarketingControllerTest extends Specification {
             saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-12"), 1, 4000)
 
         expect:
-            this.mockMvc.perform(post("/marketing/impressions/total")
-                .content('{"campaign":"cmp2"}')
+            this.mockMvc.perform(post("/marketing/impressions")
+                .content('{"campaign":"cmp2","groupBy": "daily"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().json("""[
-                {"impressions":4000,"date":"2019-12-13"},
-                {"impressions":3000,"date":"2019-12-14"}]"""))
+                {"total":4000,"date":"2019-12-13"},
+                {"total":3000,"date":"2019-12-14"}]"""))
     }
 
 

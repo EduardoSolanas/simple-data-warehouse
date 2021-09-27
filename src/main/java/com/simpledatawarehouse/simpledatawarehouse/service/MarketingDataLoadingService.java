@@ -3,6 +3,7 @@ package com.simpledatawarehouse.simpledatawarehouse.service;
 import com.simpledatawarehouse.simpledatawarehouse.model.Marketing;
 import com.simpledatawarehouse.simpledatawarehouse.repository.MarketingRepository;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 
+import static java.lang.String.format;
+
 @Service
+@Slf4j
 public class MarketingDataLoadingService {
 
     private final MarketingRepository marketingRepository;
@@ -36,9 +40,12 @@ public class MarketingDataLoadingService {
     public void loadMarketingData() throws IOException {
 
         if (loadInitialDataEnabled) {
+            log.info("starting to load resources");
             URL stockURL = new URL(csvURL);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stockURL.openStream()));
             bufferedReader.lines().skip(1).map(mapToItem).forEach(marketingRepository::save);
+
+            log.info(format("all resources has been loaded successfully, a total of %s items", marketingRepository.count()));
         }
     }
 
