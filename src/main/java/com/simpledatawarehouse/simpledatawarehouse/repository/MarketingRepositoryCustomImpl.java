@@ -1,10 +1,10 @@
 package com.simpledatawarehouse.simpledatawarehouse.repository;
 
-import com.simpledatawarehouse.simpledatawarehouse.controller.Aggregations;
-import com.simpledatawarehouse.simpledatawarehouse.controller.MarketingQueryRequest;
-import com.simpledatawarehouse.simpledatawarehouse.controller.Metrics;
-import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Aggregations;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.MarketingQueryRequest;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Metrics;
 import com.simpledatawarehouse.simpledatawarehouse.model.Marketing;
+import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.simpledatawarehouse.simpledatawarehouse.util.StringUtils.cleanse;
 import static java.util.Arrays.stream;
 
 @Repository
@@ -43,7 +44,7 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
         }
 
         if (request.getGroupBy() != null) {
-            extractGroupsBy(request.getGroupBy(), query, root);
+            extractGroupsBy(cleanse(request.getGroupBy()), query, root);
         }
 
         return em.createQuery(query).getResultList();

@@ -1,5 +1,6 @@
 package com.simpledatawarehouse.simpledatawarehouse.controller
 
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Aggregations
 import com.simpledatawarehouse.simpledatawarehouse.model.Marketing
 import com.simpledatawarehouse.simpledatawarehouse.repository.MarketingRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -61,7 +62,7 @@ class MarketingControllerTest extends Specification {
     def "total clicks returns a 400 response if any grouping value is passed"() {
         expect:
             this.mockMvc.perform(post("/${metric}/total/sum")
-                .content('{"groupBy":"date"}')
+                .content('{"groupBy":"daily"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
                 .andExpect(content().string("groupBy is not supported"))
@@ -170,6 +171,29 @@ class MarketingControllerTest extends Specification {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
                 .andExpect(content().string("groupBy is needed"))
+    }
+
+    @Unroll
+    def "total Click-Through Rate returns a 400 if there is a groupBy value that is invalid"() {
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content("""{"groupBy":"${groupBy}"}""")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isBadRequest())
+                .andExpect(content().string("'${groupBy}' is a invalid value for groupBy, valid values are: daily, datasource, campaign"))
+        where:
+            groupBy << ['invalidValue', 'datasource,invalidValue']
+    }
+
+    @Unroll
+    def "total Click-Through Rate returns a 200 if there is a groupBy value allowing camel case and spaces"() {
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content("""{"groupBy":"${groupBy}"}""")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+        where:
+            groupBy << ['Datasource', ' Datasource', ' campaign , Datasource ']
     }
 
     def "total Click-Through Rate for a given date"() {

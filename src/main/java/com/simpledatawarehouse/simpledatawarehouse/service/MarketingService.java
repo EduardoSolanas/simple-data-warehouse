@@ -1,8 +1,8 @@
 package com.simpledatawarehouse.simpledatawarehouse.service;
 
-import com.simpledatawarehouse.simpledatawarehouse.controller.Aggregations;
-import com.simpledatawarehouse.simpledatawarehouse.controller.MarketingQueryRequest;
-import com.simpledatawarehouse.simpledatawarehouse.controller.Metrics;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Aggregations;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.MarketingQueryRequest;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Metrics;
 import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.repository.MarketingRepository;
 import lombok.AllArgsConstructor;

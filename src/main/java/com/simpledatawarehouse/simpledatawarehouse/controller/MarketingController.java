@@ -1,14 +1,19 @@
 package com.simpledatawarehouse.simpledatawarehouse.controller;
 
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Aggregations;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.MarketingQueryRequest;
+import com.simpledatawarehouse.simpledatawarehouse.controller.request.Metrics;
 import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByIsNeededException;
 import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByNotSupportedException;
 import com.simpledatawarehouse.simpledatawarehouse.model.ResultItem;
 import com.simpledatawarehouse.simpledatawarehouse.service.MarketingService;
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -29,7 +34,7 @@ public class MarketingController {
     @PostMapping(value = {"/{metrics}", "/{metrics}/{aggregations}"})
     public List<ResultItem> calculateMetrics(@PathVariable Metrics metrics,
                                              @PathVariable(required = false) Aggregations aggregations,
-                                             @RequestBody MarketingQueryRequest request) {
+                                             @RequestBody @Valid MarketingQueryRequest request) {
 
         if (Metrics.CTR.equals(metrics) && request.getGroupBy() == null) throw new GroupingByIsNeededException();
         return marketingService.getMetricQueryResults(metrics, aggregations, request);

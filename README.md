@@ -2,7 +2,7 @@
 
 ### Reference Documentation
 There are the following metrics:
-* CTR (requires always a groupBy param)
+* CTR (requires a groupBy param)
 * Clicks
 * Impressions
 
@@ -18,10 +18,21 @@ All endpoints can be filtered by :
 * Datasource: Filters by datasource value
 * Campaign: Filters by campaign value
 
+The endpoints that support grouping allow the following fields to be grouped by:
+* daily
+* campaign
+* datasource
+
 There are 3 endpoints:
  * /{metrics}/total/{aggregations} Calculates the total for the given metric and the given aggregation. It does not support grouping
  * /{metrics}/{aggregations} Calculates the aggregation of the given metric. Supports grouping.
  * /{metrics} Calculates the sum of the given metric. Supports grouping.
+
+## Application deployment
+The application has been deployed in this environment:
+
+http://simpledatawarehouse-env.eba-v3pxyp9n.eu-west-1.elasticbeanstalk.com/marketing/
+
 
 ## Examples
 * Will return total clicks for a given Datasource for a given Date range
@@ -45,12 +56,8 @@ curl --location --request POST 'http://simpledatawarehouse-env.eba-v3pxyp9n.eu-w
 ```
 
 
-## Application deployment
-The application has been deployed in this environment:
-
-http://simpledatawarehouse-env.eba-v3pxyp9n.eu-west-1.elasticbeanstalk.com/marketing/
 
 ## Possible improvements
 * Add a way to combine CTR with some aggregations, like for example: return the AVG(CTR) for a month
-* Add Pagination
+* Add Pagination, so if there is a lot of data you can consume it in pages.
 * Add sorting
