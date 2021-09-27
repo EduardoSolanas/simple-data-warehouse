@@ -31,6 +31,5 @@ class MarketingDataLoadingServiceTest extends Specification {
             marketingDataLoadingService.loadMarketingData()
         then:
             marketingRepository.count() == 23198
-
     }
 }

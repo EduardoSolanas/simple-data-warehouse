@@ -2,15 +2,16 @@ package com.simpledatawarehouse.simpledatawarehouse.controller.request;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.simpledatawarehouse.simpledatawarehouse.util.StringUtils.cleanse;
 import static java.util.Arrays.stream;
 
 public class GroupByConstraintValidator implements ConstraintValidator<GroupByConstraint, String> {
 
-    public static final List<String> validGroupByValues = Arrays.asList("daily", "datasource", "campaign");
+    public static final List<String> validGroupByValues =
+            stream(GroupByValues.values()).map(value -> value.name().toLowerCase()).collect(Collectors.toList());
 
     @Override
     public void initialize(GroupByConstraint constraintAnnotation) {

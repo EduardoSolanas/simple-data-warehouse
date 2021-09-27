@@ -1,7 +1,7 @@
 package com.simpledatawarehouse.simpledatawarehouse.controller;
 
 import com.simpledatawarehouse.simpledatawarehouse.controller.request.GroupByConstraintValidator;
-import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByIsNeededException;
+import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByIsNeededForCTRException;
 import com.simpledatawarehouse.simpledatawarehouse.exception.GroupingByNotSupportedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +24,9 @@ public class ExceptionHandlingController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(GroupingByIsNeededException.class)
+    @ExceptionHandler(GroupingByIsNeededForCTRException.class)
     public ResponseEntity<String> groupingIsNeeded() {
-        return ResponseEntity.badRequest().body("groupBy is needed");
+        return ResponseEntity.badRequest().body("\"groupBy\"=\"datasource,campaign\" is needed for CTR");
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

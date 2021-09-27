@@ -142,7 +142,7 @@ class MarketingControllerTest extends Specification {
                     .andExpect(content().string("8"))
     }
 
-    def "total Click-Through Rate for a given date range "() {
+    def "total Click-Through Rate for a given date range, ordering by the same groupBy fields asc "() {
         given: "ctr 50/6000 = 0.008333333333333333"
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 20, 4000)
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-14"), 30, 2000)
@@ -161,16 +161,18 @@ class MarketingControllerTest extends Specification {
                     .andExpect(content().json("""[
                     {"datasource":"ds1","campaign":"cmp1","ctr":0.008333333333333333},
                     {"datasource":"ds1","campaign":"cmp2","ctr":0.0033333333333333335},
-                    {"datasource":"ds2","campaign":"cmp1","ctr":0.0025}]"""))
+                    {"datasource":"ds2","campaign":"cmp1","ctr":0.0025}]""", true))
     }
 
-    def "total Click-Through Rate returns a 400 if there is no groupBy"() {
+    def "total Click-Through Rate returns a 400 if there is no groupBy or an invalid one"() {
         expect:
             this.mockMvc.perform(post("/ctr")
                 .content('{}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
-                .andExpect(content().string("groupBy is needed"))
+                .andExpect(content().string("\"groupBy\"=\"datasource,campaign\" is needed for CTR"))
+        where:
+            content << ['{}','{"groupBy":"datasource"}','{"groupBy":"campaign"}','{"groupBy":"daily"}']
     }
 
     @Unroll
@@ -180,7 +182,7 @@ class MarketingControllerTest extends Specification {
                 .content("""{"groupBy":"${groupBy}"}""")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isBadRequest())
-                .andExpect(content().string("'${groupBy}' is a invalid value for groupBy, valid values are: daily, datasource, campaign"))
+                .andExpect(content().string("'${groupBy}' is a invalid value for groupBy, valid values are: datasource, campaign, daily"))
         where:
             groupBy << ['invalidValue', 'datasource,invalidValue']
     }
@@ -193,7 +195,7 @@ class MarketingControllerTest extends Specification {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
         where:
-            groupBy << ['Datasource', ' Datasource', ' campaign , Datasource ']
+            groupBy << ['Datasource,campaign', ' datasource,campaign ', ' campaign , Datasource ']
     }
 
     def "total Click-Through Rate for a given date"() {
@@ -213,7 +215,7 @@ class MarketingControllerTest extends Specification {
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().json("""[
                     {"datasource":"ds1","campaign":"cmp1","ctr":0.005},
-                    {"datasource":"ds1","campaign":"cmp2","ctr":0.0033333333333333335}]"""))
+                    {"datasource":"ds1","campaign":"cmp2","ctr":0.0033333333333333335}]""", true))
     }
 
     def "total Click-Through Rate for a given datasource"() {
@@ -434,7 +436,7 @@ class MarketingControllerTest extends Specification {
                 {"total":3000,"date":"2019-12-14"}]"""))
     }
 
-    def "sum impressions over time group by daily and campaign"() {
+    def "sum impressions over time group by daily and campaign, it sorts by default in the same order as the groupBy"() {
         given:
             saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
             saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
@@ -443,13 +445,13 @@ class MarketingControllerTest extends Specification {
 
         expect:
             this.mockMvc.perform(post("/impressions/sum")
-                .content('{"groupBy": "daily,campaign"}')
+                .content('{"groupBy": "daily,campaign,datasource"}')
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().json("""[
-                {"total":8000,"date":"2019-12-12","campaign":"cmp2"},
-                {"total":4000,"date":"2019-12-13","campaign":"cmp1"},
-                {"total":4000,"date":"2019-12-13","campaign":"cmp2"}]"""))
+                {"total":8000,"date":"2019-12-12","datasource":"ds2","campaign":"cmp2"},
+                {"total":4000,"date":"2019-12-13","datasource":"ds1","campaign":"cmp1"},
+                {"total":4000,"date":"2019-12-13","datasource":"ds1","campaign":"cmp2"}]""", true))
     }
 
     def "sum impressions over time group by daily and datasource"() {
@@ -466,7 +468,60 @@ class MarketingControllerTest extends Specification {
                 .andDo(print()).andExpect(status().isOk())
                 .andExpect(content().json("""[
                 {"total":8000,"date":"2019-12-12","datasource":"ds2"},
-                {"total":8000,"date":"2019-12-13","datasource":"ds1"}]"""))
+                {"total":8000,"date":"2019-12-13","datasource":"ds1"}]""", true))
+    }
+
+    def "sum impressions over time group by campaign and datasource"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/impressions/sum")
+                .content('{"groupBy": "campaign,datasource"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                {"total":4000,"datasource":"ds1","campaign":"cmp1"},
+                {"total":4000,"datasource":"ds1","campaign":"cmp2"},
+                {"total":8000,"datasource":"ds2","campaign":"cmp2"}]""", true))
+    }
+
+    def "sum impressions over time group by campaign and date"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/impressions/sum")
+                .content('{"groupBy": "campaign,daily"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                {"total":4000,"date":"2019-12-13","campaign":"cmp1"},
+                {"total":8000,"date":"2019-12-12","campaign":"cmp2"},
+                {"total":4000,"date":"2019-12-13","campaign":"cmp2"}]""", true))
+    }
+
+    def "sum impressions over time group by datasource"() {
+        given:
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-13"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-12"), 1, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/impressions/sum")
+                .content('{"groupBy": "datasource"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                {"total":8000,"datasource":"ds1"},
+                {"total":8000,"datasource":"ds2"}]""", true))
     }
 
     def "max impressions over time group by daily and datasource"() {

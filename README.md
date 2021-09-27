@@ -60,4 +60,4 @@ curl --location --request POST 'http://simpledatawarehouse-env.eba-v3pxyp9n.eu-w
 ## Possible improvements
 * Add a way to combine CTR with some aggregations, like for example: return the AVG(CTR) for a month
 * Add Pagination, so if there is a lot of data you can consume it in pages.
-* Add sorting
+* Add better sorting. At the moment is asc by default and using the values from the groupBy param.
