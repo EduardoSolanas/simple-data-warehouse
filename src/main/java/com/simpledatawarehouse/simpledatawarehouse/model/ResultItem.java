@@ -3,6 +3,7 @@ package com.simpledatawarehouse.simpledatawarehouse.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
 import java.time.LocalDate;
 
 
@@ -17,10 +18,39 @@ public class ResultItem {
     private String datasource;
     private String campaign;
 
-    public ResultItem(String datasource, String campaign, Double ctr) {
+    public ResultItem(String campaign, String datasource, Double ctr) {
         this.ctr = ctr;
         this.datasource = datasource;
         this.campaign = campaign;
+    }
+
+    public ResultItem(String datasource, Double ctr) {
+        this.ctr = ctr;
+        this.datasource = datasource;
+    }
+
+    public ResultItem(String campaign, LocalDate date, Double ctr) {
+        this.ctr = ctr;
+        this.campaign = campaign;
+        this.date = date;
+    }
+
+    public ResultItem(LocalDate date, Double ctr) {
+        this.ctr = ctr;
+        this.date = date;
+    }
+
+    public ResultItem(LocalDate date, String campaign, Double ctr) {
+        this.ctr = ctr;
+        this.date = date;
+        this.campaign = campaign;
+    }
+
+    public ResultItem(String campaign, LocalDate date, String datasource, Double ctr) {
+        this.ctr = ctr;
+        this.date = date;
+        this.campaign = campaign;
+        this.datasource = datasource;
     }
 
     public ResultItem(Long total, LocalDate date) {

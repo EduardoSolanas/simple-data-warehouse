@@ -39,9 +39,12 @@ public class MarketingRepositoryCustomImpl implements MarketingRepositoryCustom 
             Expression<Long> sum2 = builder.sum(root.get("impressions"));
             Expression<Double> ctr = builder.quot(sum1, sum2).as(Double.class);
 
-            query.select(builder.construct(ResultItem.class, root.get("datasource"), root.get("campaign"), ctr));
+            List<Expression> params = groupByValues.stream().sorted().map(root::get).collect(Collectors.toList());
+            params.add(ctr);
+
+            query.multiselect(params.toArray(Selection[]::new));
         } else {
-            query.select(builder.construct(ResultItem.class, extractSelectParamsFromGroupsBy(aggregations, groupByValues, metrics, root, builder)));
+            query.multiselect(extractSelectParamsFromGroupsBy(aggregations, groupByValues, metrics, root, builder));
         }
 
         if (request.getGroupBy() != null) {

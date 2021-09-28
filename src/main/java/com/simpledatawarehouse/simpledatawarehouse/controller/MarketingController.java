@@ -16,9 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.validation.Valid;
 import java.util.List;
 
-import static com.simpledatawarehouse.simpledatawarehouse.controller.request.GroupByValues.CAMPAIGN;
-import static com.simpledatawarehouse.simpledatawarehouse.controller.request.GroupByValues.DATASOURCE;
-
 @RestController
 @AllArgsConstructor
 public class MarketingController {
@@ -39,12 +36,8 @@ public class MarketingController {
                                              @PathVariable(required = false) Aggregations aggregations,
                                              @RequestBody @Valid MarketingQueryRequest request) {
 
-        if (Metrics.CTR.equals(metrics) && (request.getGroupBy() == null ||
-                !request.getGroupBy().toLowerCase().contains(DATASOURCE.name().toLowerCase()) ||
-                !request.getGroupBy().toLowerCase().contains(CAMPAIGN.name().toLowerCase()))) {
+        if (Metrics.CTR.equals(metrics) && request.getGroupBy() == null) throw new GroupingByIsNeededForCTRException();
 
-            throw new GroupingByIsNeededForCTRException();
-        }
         return marketingService.getMetricQueryResults(metrics, aggregations, request);
     }
 }

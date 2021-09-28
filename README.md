@@ -1,8 +1,13 @@
 # Getting Started
 
+I have decided to defined 2 endpoints, mostly for the different response types, 'totals' with just a number and the other endpoint that returns a list of items.
+
+CTR has been considered a metric in order to simplify the number of endpoints.
+
+
 ### Reference Documentation
 There are the following metrics:
-* CTR (requires a groupBy param)
+* CTR (requires a groupBy params)
 * Clicks
 * Impressions
 
@@ -28,7 +33,7 @@ The endpoints that support grouping allow the following fields to be grouped by:
 There are 3 endpoints:
  * /{metrics}/total/{aggregations} Calculates the total for the given metric and the given aggregation. It does not support grouping
  * /{metrics}/{aggregations} Calculates the aggregation of the given metric. Supports grouping.
- * /{metrics} Calculates the sum of the given metric. Supports grouping.
+ * /{metrics} Calculates the sum of the given metric. Supports grouping. This is the endpoint to use when using CTR because adding an aggregation on top of the CTR is not supported.
 
 ## Application deployment
 The application has been deployed in this environment:

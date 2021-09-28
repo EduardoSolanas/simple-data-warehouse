@@ -255,14 +255,14 @@ class MarketingControllerTest extends Specification {
     }
 
     @Unroll
-    def "total Click-Through Rate returns a 200 if there is a groupBy value allowing camel case and spaces"() {
+    def "total Click-Through Rate returns a 200 if there is a valid groupBy value allowing camel case and spaces"() {
         expect:
             this.mockMvc.perform(post("/ctr")
                 .content("""{"groupBy":"${groupBy}"}""")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print()).andExpect(status().isOk())
         where:
-            groupBy << ['Datasource,campaign', ' datasource,campaign ', ' campaign , Datasource ']
+            groupBy << ['Datasource,campaign', ' datasource ','campaign', ' campaign , Datasource ']
     }
 
     def "total Click-Through Rate for a given date"() {
@@ -283,6 +283,82 @@ class MarketingControllerTest extends Specification {
                 .andExpect(content().json("""[
                     {"datasource":"ds1","campaign":"cmp1","ctr":0.005},
                     {"datasource":"ds1","campaign":"cmp2","ctr":0.0033333333333333335}]""", true))
+    }
+
+    def "total Click-Through Rate grouping by datasource"() {
+        given: "ctr 70/10000 = 0.007"
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 20, 4000)
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-13"), 10, 3000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-15"), 10, 1000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-14"), 30, 2000)
+        and:  "ctr of 10/4000 = 0.0025"
+            saveMarketing("ds2","cmp1", LocalDate.parse("2019-12-14"), 10, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content('{"groupBy":"datasource"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                   {"ctr":0.007,"datasource":"ds1"},
+                   {"ctr":0.0025,"datasource":"ds2"}]""", true))
+    }
+
+    def "total Click-Through Rate grouping by campaign"() {
+        given: "ctr 40/8000 = 0.005"
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 20, 4000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10, 3000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-15"), 10, 1000)
+        and:  "ctr of 40/6000 = 0.006666666666666667"
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-14"), 30, 2000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 10, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content('{"groupBy":"campaign"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                   {"ctr":0.005,"datasource":"cmp1"},
+                   {"ctr":0.006666666666666667,"datasource":"cmp2"}]""", true))
+    }
+
+    def "total Click-Through Rate grouping by daily"() {
+        given: "ctr 40/8000 = 0.005"
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 20, 4000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10, 3000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10, 1000)
+        and:  "ctr of 40/6000 = 0.006666666666666667"
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-14"), 30, 2000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 10, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content('{"groupBy":"daily"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                   {"ctr":0.005,"date":"2019-12-13"},
+                   {"ctr":0.006666666666666667,"date":"2019-12-14"}]""", true))
+    }
+
+    def "total Click-Through Rate grouping by daily and campaign"() {
+        given: "ctr 40/8000 = 0.005"
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 20, 4000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10, 3000)
+            saveMarketing("ds1","cmp1", LocalDate.parse("2019-12-13"), 10, 1000)
+        and:  "ctr of 40/6000 = 0.006666666666666667"
+            saveMarketing("ds1","cmp2", LocalDate.parse("2019-12-14"), 30, 2000)
+            saveMarketing("ds2","cmp2", LocalDate.parse("2019-12-14"), 10, 4000)
+
+        expect:
+            this.mockMvc.perform(post("/ctr")
+                .content('{"groupBy":"daily,campaign"}')
+                .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print()).andExpect(status().isOk())
+                .andExpect(content().json("""[
+                   {"ctr":0.005,"date":"2019-12-13","campaign":"cmp1"},
+                   {"ctr":0.006666666666666667,"date":"2019-12-14","campaign":"cmp2"}]""", true))
     }
 
     def "total Click-Through Rate for a given datasource"() {
